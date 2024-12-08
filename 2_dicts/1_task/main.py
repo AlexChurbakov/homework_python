@@ -1,4 +1,6 @@
 import os
+from decimal import Decimal
+from unicodedata import decimal
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SPLIT_SYMBOL = '\n'
@@ -23,4 +25,30 @@ def get_parsed_employees_info() -> list[dict[str, int | str]]:
     parsed_employees_info = []
 
     # Ваш код ниже
+    for stroka in _:
+        word_array = stroka.split(" ")
+        person = {"id" : int, "name" : str, "last_name" : str, "age" : int, "position" : str, "salary" : decimal}
+        print (word_array)
+        key = 0
+        for key, word in enumerate(word_array):
+            match word:
+                case "id":
+                    person["id"] = int(word_array[key + 1])
+                    print (person["id"])
+                case "name":
+                    person["name"] = word_array[key + 1]
+                    print(person["name"])
+                case "last_name":
+                    person["last_name"] = word_array[key + 1]
+                    print(person["last_name"])
+                case "age":
+                    person["age"] = int(word_array[key + 1])
+                    print(person["age"])
+                case "position":
+                    person["position"] = word_array[key + 1]
+                    print(person["position"])
+                case "salary":
+                    person["salary"] = Decimal(word_array[key + 1])
+                    print(person["salary"])
+            parsed_employees_info.append(person)
     return parsed_employees_info

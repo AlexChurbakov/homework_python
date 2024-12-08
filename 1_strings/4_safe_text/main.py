@@ -1,4 +1,5 @@
 import os
+from os import remove
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SPLIT_SYMBOL = '.\n'
@@ -21,5 +22,25 @@ def get_wrong_article() -> str:
 def recover_article() -> str:
     wrong_article = get_wrong_article()
 
-    # Ваш код ниже, возвращайте уже отредактированный текст!
-    return wrong_article
+    new_article = wrong_article.split("\n")
+    new_article.remove(new_article[4])
+    new_wrong_article = ""
+#    for iii in new_article:
+#        print(iii, "\n\n\n\n\n")
+# sentence.capitalize() - делает первую букву предложения большой
+#         .replace() - меняет один символ на другой
+# sentence[::-1] - переворачивает строку
+    for sentence in new_article:
+        new_sentence = sentence.replace("!", "")
+
+        new_sentence = new_sentence[::-1]
+
+        new_sentence = new_sentence.replace(".", "")
+
+        new_sentence = new_sentence.lower()
+        new_sentence = new_sentence.replace("woof-woof", "cat")
+        new_sentence = new_sentence.capitalize()
+        print(new_sentence, "\n\n")
+        new_wrong_article = new_wrong_article + new_sentence + ".\n"
+    print(new_wrong_article)
+    return new_wrong_article
