@@ -1,40 +1,42 @@
 import os
 import pytz
+from typing import Protocol
 from datetime import datetime
 from helpers import create_file
 
-class Saver:
-    def __init__(self, filepath: str, buffer):
+class Protocol_Saver(Protocol):
+    def __init__(self, filepath):
+        self.path = filepath
+        pass
+
+    def save_to_file(self, buffer) -> None:
+        pass
+
+class SaverTxt:
+    def __init__(self, filepath: str):
         self.filepath = filepath
-        self.buffer = buffer
 
-    def save_to_file(self):
-        format_dict = {
-            '.csv': lambda ts, name, value: f"{ts};{name};{value}\n",
-            '.txt': lambda ts, name, value: f"{ts} {name} {value}\n"
-        }
-        write_format = format_dict.get(self.filepath[-4:], format_dict['.txt'])
+    def save_to_file(self, buffer):
+         with open(self.filepath, "a") as file:
+            for timestamp, name, value in buffer:
+                file.write(f"{timestamp} {name} {value}\n")
+            buffer.clear()
 
+class SaverCsv:
+    def __init__(self, filepath: str):
+        self.filepath = filepath
+
+    def save_to_file(self, buffer):
         with open(self.filepath, "a") as file:
-            if self.filepath.endswith('.csv') and os.path.getsize(self.filepath) == 0:
-                file.write("Timestamp;Name;Value\n")
-
-            for timestamp, name, value in self.buffer:
-                file.write(write_format(timestamp, name, value))
-            self.buffer.clear()
+            for timestamp, name, value in buffer:
+                file.write(f"{timestamp};{name};{value}\n")
+            buffer.clear()
 
 class Statsd:
-    def __init__(self, filepath: str, buffer_limit: int):
-        if not filepath.endswith(('.txt', '.csv')):
-
-            raise ValueError("File must be a .txt or .csv file.")
-
-        self.filepath = filepath
+    def __init__(self, saver: Protocol_Saver, buffer_limit: int):
+        self.saver = saver
         self.buffer_limit = buffer_limit
         self.buffer = []
-
-        if not os.path.isfile(self.filepath):
-            create_file(self.filepath)
 
     def incr(self, name: str):
         self._add_metric(name, 1)
@@ -51,8 +53,7 @@ class Statsd:
             self._evacuate()
 
     def _evacuate(self):
-        try_to_save = Saver(self.filepath, self.buffer)
-        try_to_save.save_to_file()
+        self.saver.save_to_file(self.buffer)
 
     def __enter__(self):
         return self
@@ -61,10 +62,21 @@ class Statsd:
         self._evacuate()
         self.buffer.clear()
 
-
 def get_txt_statsd(path: str, buffer_limit: int = 10) -> Statsd:
-    return Statsd(path, buffer_limit)
-
+    if not path.endswith('.txt'):
+        raise ValueError("File must be a .txt or .csv file.")
+    if not os.path.isfile(path):
+        create_file(path)
+    saved_element = SaverTxt(path)
+    return Statsd(saved_element, buffer_limit)
 
 def get_csv_statsd(path: str, buffer_limit: int = 10) -> Statsd:
-    return Statsd(path, buffer_limit)
+    if not path.endswith('.csv'):
+        raise ValueError("File must be a .txt or .csv file.")
+    if not os.path.isfile(path):
+        create_file(path)
+    if os.path.getsize(path) == 0:
+        with open(path, "a") as file:
+            file.write("Timestamp;Name;Value\n")
+    saved_element = SaverCsv(path)
+    return Statsd(saved_element, buffer_limit)
