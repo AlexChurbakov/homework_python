@@ -1,11 +1,12 @@
 import datetime
 import os
 from operator import truediv
+from os.path import split
 from pre_commit.output import write_line
 import requests
 import geocoder
 import json
-
+from array import *
 
 global_weather = {"time": "", "city": "", "weather_conditions": "", "temperature": "", "temperature_feels": "", "wind_speed": ""}
 path = "weather_data_file.txt"
@@ -47,14 +48,13 @@ def print_weather_of_city (weather: dict):
     print (f"Погодные условия: {weather["weather_conditions"]}\n")
     print (f"Текущая температура: {weather["temperature"]} градусов по цельсию\n")
     print (f"Ощущается как: {weather["temperature_feels"]} градусов по цельсию\n")
-    print (f"Скорость ветра: {weather["wind_speed"]} м/c\n")
+    print (f"Скорость ветра: {weather["wind_speed"]} м/c\n\n\n")
 
 
 def get_weather_selected_sity():
     city = input("Введите название города:\n").replace(" ", "")
     url = get_URL(city)
     response = requests.get(url).json()
-    #print (response)
     if response["cod"] == 200:
         weather_info = write_weather_info(response)
         save_info_to_file(make_string(weather_info))
@@ -80,19 +80,46 @@ def read_story_file():
         n = int(input("Сколько последних запросов Вы хотите посмотреть?\n"))
         if (type(n) != int) or (n < 1):
             raise ValueError
-        else:
-            with open(path, 'r') as file:
-                new_n = n
-                while new_n >= 1:
-                    for index in range(7):
-                        file_info = file.readline()
-                        if file_info == "":
-                            print("Больше в файле нет информации\n")
-                            return
-                        print(file_info, "\n")
-                    new_n -= 1
+        with open(path, 'r') as file:
+            lines = file.read()
+            lines = lines[::-1]
+            lines = lines.split("\n")
+            res_lines = []
+            for line_res in lines:
+                res_lines.append(line_res[::-1])
+            del lines
+            res_lines.pop(0)
+
+            new_n = n
+            while new_n >= 1:
+                if not read_one_city(res_lines):
+                    print("В файле больше нет данных\n")
+                    return
+                for i in range(6):
+                    res_lines.pop(0)
+                new_n -= 1
     except ValueError:
         print("Число запросов выражается целым положительным числом\n")
+
+
+def read_one_city(line) -> bool:
+    if len(line) == 0:
+        return False
+    weather = global_weather
+    value = line[0].split(" ")
+    weather["wind_speed"] = value[2]
+    value = line[1].split(" ")
+    weather["temperature_feels"] = value[2]
+    value = line[2].split(" ")
+    weather["temperature"] = value[2]
+    value = line[3].split(" ")
+    weather["weather_conditions"] = value[2]
+    value = line[4].split(" ")
+    weather["city"] = value[2]
+    value = line[5].split(" ")
+    weather["time"] = value[2] + value[3]
+    print_weather_of_city(weather)
+    return True
 
 
 def clear_story_file():
@@ -111,15 +138,16 @@ def create_file(path: str):
     with open(path, "w") as _:
         pass
 
+
 def make_string(weather) -> str:
-    file_info = f"\
-    Текущее время: {weather["time"]}\n\
-    Название города: {weather["city"]}\n\
-    Погодные условия: {weather["weather_conditions"]}\n\
-    Текущая температура: {weather["temperature"]} градусов по цельсию\n\
-    Ощущается как: {weather["temperature_feels"]} градусов по цельсию\n\
-    Скорость ветра: {weather["wind_speed"]} м/c\n"
+    file_info = f"Текущее время: {weather["time"]}\n\
+Название города: {weather["city"]}\n\
+Погодные условия: {weather["weather_conditions"]}\n\
+Текущая температура: {weather["temperature"]} градусов по цельсию\n\
+Ощущается как: {weather["temperature_feels"]} градусов по цельсию\n\
+Скорость ветра: {weather["wind_speed"]} м/c\n"
     return file_info
+
 
 def write_weather_info(resp):
     try:
@@ -140,12 +168,3 @@ def write_weather_info(resp):
 
 if __name__ == "__main__":
     main()
-
-
-
-# Сейчас файл читает всегда сначала, нужно сделать, чтоб читал с конца
-# Добавить проверку пустоты файла вначале считывания
-
-
-
-
