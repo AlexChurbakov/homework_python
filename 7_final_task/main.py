@@ -1,16 +1,20 @@
 import datetime
 import os
 from operator import truediv
-from typing import Protocol
 from pre_commit.output import write_line
 import requests
 import geocoder
 import json
 
+
+global_weather = {"time": "", "city": "", "weather_conditions": "", "temperature": "", "temperature_feels": "", "wind_speed": ""}
+path = "weather_data_file.txt"
+
+
 def main ():
     program_activity = True
     while program_activity:
-        print ("""Введите: 0, если хотите завершить программу\n"
+        print ("""                  Введите: 0, если хотите завершить программу\n
                            1, чтоб узнать погоду в выбранном городе\n
                            2, чтоб узнать погоду в Вашем городе\n
                            3, чтоб посмотреть историю запросов\n
@@ -32,12 +36,9 @@ def main ():
             continue
 
 
-global_weather = {"time": "", "city": "", "weather_conditions": "", "temperature": "", "temperature_feels": "", "wind_speed": ""}
-
-
 def get_URL(city: str):
-    API_KEY = open("api_key.json", "r").read()
-    return "http://api.openweathermap.org/data/2.5/weather?appid=" + API_KEY + "&q=" + city + "&lang=ru" + "&units=metric"
+    API_KEY = open("api_key.txt", "r").read()
+    return "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + API_KEY + "&lang=ru&units=metric"
 
 
 def print_weather_of_city (weather: dict):
@@ -53,6 +54,7 @@ def get_weather_selected_sity():
     city = input("Введите название города:\n").replace(" ", "")
     url = get_URL(city)
     response = requests.get(url).json()
+    #print (response)
     if response["cod"] == 200:
         weather_info = write_weather_info(response)
         save_info_to_file(make_string(weather_info))
@@ -66,24 +68,27 @@ def get_weather_your_sity():
     url = get_URL(city)
     response = requests.get(url).json()
     weather_info = write_weather_info(response)
-    save_info_to_file(weather_info)
+    save_info_to_file(make_string(weather_info))
     print_weather_of_city(weather_info)
 
 
 def read_story_file():
+    if (not os.path.isfile(path) or os.path.getsize(path)) == 0:
+        print ("Файл пуст или не существует\n")
+        return
     try:
         n = int(input("Сколько последних запросов Вы хотите посмотреть?\n"))
         if (type(n) != int) or (n < 1):
             raise ValueError
         else:
-            with open('weather_data_file.txt', 'r') as file:
+            with open(path, 'r') as file:
                 new_n = n
                 while new_n >= 1:
                     for index in range(7):
                         file_info = file.readline()
                         if file_info == "":
                             print("Больше в файле нет информации\n")
-                            break
+                            return
                         print(file_info, "\n")
                     new_n -= 1
     except ValueError:
@@ -91,14 +96,20 @@ def read_story_file():
 
 
 def clear_story_file():
-    with open("weather_data_file.txt", "w") as file:
+    with open(path, "w") as file:
         pass
 
 
 def save_info_to_file(file_info):
-    with open('weather_data_file.txt', 'a') as file:
+    if not os.path.isfile(path):
+        create_file(path)
+    with open(path, 'a') as file:
         file.write(file_info)
 
+
+def create_file(path: str):
+    with open(path, "w") as _:
+        pass
 
 def make_string(weather) -> str:
     file_info = f"\
@@ -118,7 +129,7 @@ def write_weather_info(resp):
         print("Ошибка\n")
 
     weather = global_weather
-    weather["time"] = resp["time"]
+    weather["time"] = time
     weather["city"] = resp["name"]
     weather["weather_conditions"] = resp["weather"][0]["description"]
     weather["temperature"] = resp["main"]["temp"]
@@ -132,8 +143,8 @@ if __name__ == "__main__":
 
 
 
-# сейчас файл читает всегда сначала, нужно сделать, чтоб читал с конца
-
+# Сейчас файл читает всегда сначала, нужно сделать, чтоб читал с конца
+# Добавить проверку пустоты файла вначале считывания
 
 
 
