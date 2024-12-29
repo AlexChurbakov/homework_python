@@ -8,6 +8,7 @@ import geocoder
 import json
 from array import *
 
+
 global_weather = {"time": "", "city": "", "weather_conditions": "", "temperature": "", "temperature_feels": "", "wind_speed": ""}
 path = "weather_data_file.txt"
 
@@ -53,14 +54,23 @@ def print_weather_of_city (weather: dict):
 
 def get_weather_selected_sity():
     city = input("Введите название города:\n").replace(" ", "")
-    url = get_URL(city)
-    response = requests.get(url).json()
-    if response["cod"] == 200:
-        weather_info = write_weather_info(response)
-        save_info_to_file(make_string(weather_info))
-        print_weather_of_city(weather_info)
-    else:
-        print(f"Ошибка {response['cod']}: {response['message']}")
+    try:
+        url = get_URL(city)
+        response = requests.get(url).json()
+        if response["cod"] == 200:
+            weather_info = write_weather_info(response)
+            save_info_to_file(make_string(weather_info))
+            print_weather_of_city(weather_info)
+        else:
+            print(f"Ошибка {response['cod']}: {response['message']}")
+    except requests.exceptions.HTTPError as e:
+        print(f"HTTP ошибка: {e.response.status_code} - {e.response.text}")
+    except requests.exceptions.ConnectionError:
+        print("Ошибка подключения. Проверьте интернет-соединение.")
+    except requests.exceptions.Timeout:
+        print("Время ожидания запроса истекло.")
+    except requests.exceptions.RequestException as e:
+        print(f"Произошла ошибка: {e}")
 
 
 def get_weather_your_sity():
@@ -154,7 +164,7 @@ def write_weather_info(resp):
         timezone = datetime.timezone(datetime.timedelta(seconds=float(resp["timezone"])))
         time = datetime.datetime.fromtimestamp(float(resp["dt"]), timezone)
     except KeyError:
-        print("Ошибка\n")
+        print("Ошибка в определении времени\n")
 
     weather = global_weather
     weather["time"] = time
