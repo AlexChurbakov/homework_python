@@ -63,6 +63,7 @@ def get_weather_selected_sity():
             print_weather_of_city(weather_info)
         else:
             print(f"Ошибка {response['cod']}: {response['message']}")
+
     except requests.exceptions.HTTPError as e:
         print(f"HTTP ошибка: {e.response.status_code} - {e.response.text}")
     except requests.exceptions.ConnectionError:
